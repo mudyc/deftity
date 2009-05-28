@@ -1,7 +1,28 @@
-# (c): Matti J. Katila
+# deftity - a tool for interaction architect
 #
-# The Deft tool
+# Copyright (C) 2008, 2009 Matti Katila
 #
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+
+# Written by 2008, 2009 Matti J. Katila
+
+
+"""The Def tool
+"""
+
 
 import gtk
 import math
@@ -37,6 +58,8 @@ class TheTool(object):
 
         self.active_tool = None
         self.actions = []
+
+        self.is_quit = False
 
     def draw(self, c, rect):
         self.actions = []
@@ -96,7 +119,7 @@ class TheTool(object):
 
             idx = 0
             x_ = x
-            for act in 'Screen Text Line Arrow Non Rectangle Circle'.split():
+            for act in 'Screen Text Line Arrow Non Rectangle Circle Quit'.split():
                 a = eval('actions.'+act+'()')
                 def cb():
                     self.toolbox = False
@@ -175,3 +198,6 @@ class TheTool(object):
             self.redraw()
             print 'alt pressed'
 
+        if keyname == 'q':
+            self.is_quit = True
+            self.redraw()

@@ -1,12 +1,34 @@
-# (c): 2008, Matti J. Katila
+# deftity - a tool for interaction architect
 #
-# A bootstrap and main loop of Deft tool
+# Copyright (C) 2008, 2009 Matti Katila
 #
-# implements reloading capabilities by using
-# EventBox as delegator.
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 
+# Written by 2008, 2009 Matti J. Katila
+
+
+
+"""A bootstrap and main loop of Deft tool
+
+implements reloading capabilities by using
+EventBox as delegator.
+"""
+
+
+import sys
 import pygtk
 pygtk.require('2.0')
 import gtk, reloader
@@ -37,6 +59,13 @@ def check_reload(widget, event):
 
 
 if __name__ == '__main__':
+
+    if len(sys.argv[1:]) != 1:
+        print "Deftity needs one parameter which is the file name.\n\n", \
+              "For example: 'deftity.py foobar.ixa.png'\n"
+
+        sys.exit(1)
+    
 
     WINDOW = gtk.Window()
     WINDOW.resize(640, 480)
