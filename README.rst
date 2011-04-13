@@ -57,7 +57,6 @@ sketching visualizer. My take on deftity is to learn Cairo and try to
 focus on things that are essentials for interaction design.
 
 
-
 Some weird design ideas
 -----------------------
 

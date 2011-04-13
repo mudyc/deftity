@@ -46,7 +46,7 @@ class TheTool(object):
 
         self.old_zoom = 1.0
         self.zoom = 0.3
-        self.grid_spacing = 50
+        self.grid_spacing = 150
 
         self.mouse_pointer = {
             'x': 0.,
@@ -55,6 +55,7 @@ class TheTool(object):
         self.drag_start_position = None
         self.drag_button = -1
         self.toolbox = False
+        self.choicebox = None
 
         self.active_tool = None
         self.actions = []
@@ -119,8 +120,9 @@ class TheTool(object):
 
             idx = 0
             x_ = x
-            for act in 'Screen Text Line Arrow Non Rectangle Circle Quit'.split():
+            for act in 'Screen Text Line Arrow Non Rectangle Circle Quit Page'.split():
                 a = eval('actions.'+act+'()')
+                if hasattr(a, 'set_tool'): a.set_tool(self)
                 def cb():
                     self.toolbox = False
                     self.redraw()
@@ -136,6 +138,9 @@ class TheTool(object):
             
         if self.toolbox:
             draw_toolbox(c, self.mouse_pointer)
+
+        if self.choicebox != None: 
+            self.choicebox.draw(c, self.mouse_pointer['x'], self.mouse_pointer['y'])
 
         # reorder the actions. topmost is first.
         self.actions.reverse()

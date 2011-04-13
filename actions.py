@@ -45,7 +45,7 @@ ACTION_BG = cairo.SolidPattern(1,1,1,.6)
 class Action(object):
     def __init__(self):
         self.label = ''
-    def draw(self, cx, x, y, w, h):
+    def draw(self, cx, x, y, w=1, h=1):
         self.x, self.y = x, y
         self.w, self.h = w, h
         cx.identity_matrix()
@@ -104,3 +104,26 @@ class Circle(Action):
 class Quit(Action):
     def __init__(self):
         self.label = 'Quit'
+
+class Page(Action):
+    def __init__(self):
+        self.label = 'Page'
+
+    def set_tool(self, tool):
+        self.tool = tool
+
+    def activate(self):
+        Action.activate(self)
+
+        class PageChoice(Action):
+            def draw(self, cx, x, y, w=10, h=10):
+                cx.identity_matrix()
+                cx.new_path()
+                cx.rectangle(x,y, w,h)
+                cx.set_source_rgb(1,.3,1)
+                #cx.set_source(ACTION_BG)
+                cx.close_path()
+                cx.fill_preserve()
+
+        self.tool.choicebox = PageChoice()
+        print 'act..'
