@@ -36,6 +36,7 @@ GRID_FG = cairo.SolidPattern(.8,.8,.8)
 TOOLBOX_BG = cairo.SolidPattern(.4,.4,.5, .5)
 
 
+
 class TheTool(object):
 
     def __init__(self):
@@ -46,7 +47,7 @@ class TheTool(object):
 
         self.old_zoom = 1.0
         self.zoom = 0.3
-        self.grid_spacing = 150
+        self.grid_spacing = 1./(25.4/72)*50.  # 1 pixel = 1/72 inch, 5 cm = 
 
         self.mouse_pointer = {
             'x': 0.,
@@ -60,9 +61,29 @@ class TheTool(object):
         self.active_tool = None
         self.actions = []
 
+        self.comps = []
+
         self.is_quit = False
 
+        self.action_node = 'root'
+        self.action_tree = {
+            'root': 'Screen Text Line Arrow Non Rectangle Circle Quit Page'.split(),
+            'page': 'TitlePage'.split(),
+            }
+
+    def get_actions(self):
+        return self.action_tree[self.action_node]
+
+    def add_component(self, comp):
+        self.comps.append(comp)
+        comp.pos( \
+            (self.mouse_pointer['x'] - self._rect.width/2) / self.zoom \
+            - self.canvas_position['x'],
+            (self.mouse_pointer['y'] - self._rect.height/2) / self.zoom \
+            - self.canvas_position['y'])
+
     def draw(self, c, rect):
+        self._rect = rect
         self.actions = []
         
         c.set_source(BG)
@@ -100,10 +121,20 @@ class TheTool(object):
         radius = min(rect.width /2, rect.height /2) - 5
 
         c.arc(x,y, radius, 0, 2 * math.pi)
+        c.arc(0,0, radius, 0, math.pi)
         c.set_source_rgb(1,.3,1)
         c.fill_preserve()
         c.set_source_rgb(0,0,0)
         c.stroke()
+
+
+        #print 'canvas position', \
+        mx, my = (self.mouse_pointer['x'] - self._rect.width/2 )/ self.zoom \
+                 - self.canvas_position['x'], \
+                 (self.mouse_pointer['y'] - self._rect.height/2 )/ self.zoom \
+                 - self.canvas_position['y']
+        for comp in self.comps:
+            comp.draw(c, mx, my)
 
         def draw_toolbox(c, point):
             w, h = 42*3, 38*3
@@ -113,17 +144,20 @@ class TheTool(object):
             x, y = x-w/2, y-h/2
             c.translate(x, y)
             #c.translate(-50, -50)
+            c.new_path()
             c.rectangle(0,0, w, h)
             c.set_source(TOOLBOX_BG)
             c.fill_preserve()
+            c.close_path()
             c.stroke()
 
             idx = 0
             x_ = x
-            for act in 'Screen Text Line Arrow Non Rectangle Circle Quit Page'.split():
+            for act in self.get_actions():
                 a = eval('actions.'+act+'()')
                 if hasattr(a, 'set_tool'): a.set_tool(self)
                 def cb():
+                    self.action_node = 'root'
                     self.toolbox = False
                     self.redraw()
                 a.callback = cb
@@ -139,10 +173,8 @@ class TheTool(object):
         if self.toolbox:
             draw_toolbox(c, self.mouse_pointer)
 
-        if self.choicebox != None: 
-            self.choicebox.draw(c, self.mouse_pointer['x'], self.mouse_pointer['y'])
 
-        # reorder the actions. topmost is first.
+        # reorder the actions. topmost is first if event is coming.
         self.actions.reverse()
 
     def mouse_pressed(self, w, ev):
@@ -158,15 +190,20 @@ class TheTool(object):
         for action in self.actions:
             if action.is_hit(ev.x, ev.y):
                 action.activate()
-                self.toolbox = False
+                #self.toolbox = False
         print 'released'
 
     def pointer_motion(self, w, ev):
-        #print 'pointer motion'
+        #print 'pointer motion', ev.x, ev.y
+        #print 'canvas position', \
+        #      (ev.x - self._rect.width/2 )/ self.zoom - self.canvas_position['x'], \
+        #      (ev.y - self._rect.height/2 )/ self.zoom - self.canvas_position['y']
+        
         if not self.toolbox:
             self.mouse_pointer['x'] = ev.x
             self.mouse_pointer['y'] = ev.y
         if self.drag_start_position == None:
+            self.redraw()
             return
 
         if self.drag_button == 1:
@@ -177,7 +214,8 @@ class TheTool(object):
             self.drag_start_position = { 'x': ev.x, 'y': ev.y}
             self.redraw()
         elif self.drag_button == 3:
-            self.zoom = self.old_zoom + (ev.y - self.drag_start_position['y']) / w.get_allocation().height 
+            self.zoom = self.old_zoom + (ev.y - self.drag_start_position['y']) / w.get_allocation().height
+            self.zoom = max(0.05, self.zoom)
             print self.zoom
             self.redraw()
 
@@ -189,6 +227,7 @@ class TheTool(object):
         if ev.keyval & gtk.gdk.MOD1_MASK or \
                gtk.gdk.keyval_name(ev.keyval).startswith('Control'):
             self.toolbox = False
+            self.action_node = 'root'
             self.redraw()
             print 'alt release'
            

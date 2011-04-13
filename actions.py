@@ -38,6 +38,7 @@ An action is something that may
 
 import cairo
 
+import pages
 
 ACTION_BG = cairo.SolidPattern(1,1,1,.6)
 
@@ -55,6 +56,9 @@ class Action(object):
         cx.close_path()
         cx.fill_preserve()
         self.write(cx, self.label)
+
+    def set_tool(self, tool):
+        self.tool = tool
 
     def is_hit(self,x,y):
         return self.x < x < self.x+self.w and \
@@ -113,17 +117,14 @@ class Page(Action):
         self.tool = tool
 
     def activate(self):
+        #Action.activate(self)
+        self.tool.action_node = 'page'
+        self.tool.redraw()
+
+class TitlePage(Action):
+    def __init__(self):
+        self.label = 'Title page'
+        
+    def activate(self):
         Action.activate(self)
-
-        class PageChoice(Action):
-            def draw(self, cx, x, y, w=10, h=10):
-                cx.identity_matrix()
-                cx.new_path()
-                cx.rectangle(x,y, w,h)
-                cx.set_source_rgb(1,.3,1)
-                #cx.set_source(ACTION_BG)
-                cx.close_path()
-                cx.fill_preserve()
-
-        self.tool.choicebox = PageChoice()
-        print 'act..'
+        self.tool.add_component(pages.TitlePage())

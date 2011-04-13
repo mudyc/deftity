@@ -60,8 +60,8 @@ class Delegate(gtk.DrawingArea):
     def expose(self, widget, event):
         self.context = widget.window.cairo_create()
 
-        print event.area.x, event.area.y, \
-              event.area.width, event.area.height
+        #print event.area.x, event.area.y, \
+        #      event.area.width, event.area.height
 
         self.context.rectangle(event.area.x, event.area.y,
                                event.area.width, event.area.height)
