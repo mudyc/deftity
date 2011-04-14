@@ -49,10 +49,11 @@ def write(cr, s, x, y, size):
                 y) # + 0.5 - fdescent + fheight / 2)
         cr.show_text(s)
 
+A4_SIZE = ( 1./(25.4/72)*297., 1./(25.4/72)*210. )
 
 class Page:
     def __init__(self):
-        self.wh = ( 1./(25.4/72)*297., 1./(25.4/72)*210. )
+        self.wh = A4_SIZE
         self.xy = [ 0,0 ]
         self.actions = []
     def xywh(self):
@@ -71,6 +72,14 @@ class Page:
             xx,yy = act.x, act.y
             act.draw(c, x+xx, y+yy, active)
 
+    def mouse_released(self, mx, my, cur):
+        x,y,w,h = self.xywh()
+        x = mx - x
+        y = my - y
+        for act in self.actions:
+            if act.is_hit(x, y):
+                act.mouse_released(x,y, cur)
+
 class TextfieldAct(actions.Action):
     def __init__(self, label, x,y,w,h, name, model):
         self.label = label
@@ -81,14 +90,25 @@ class TextfieldAct(actions.Action):
         c.new_path()
         w, size = self.w, self.h
         if active:
-            c.rectangle(x,y-size,w,size)
+            c.rectangle(x,y,w,size)
             c.close_path()
             c.set_source(cairo.SolidPattern(1,0,.7, .2))
             c.fill_preserve()
-            write(c, self.label+ self.model[self.name], x, y, size)
+            write(c, self.label+ self.model[self.name], x, y+size, size)
         else:
-            write(c, self.model[self.name], x, y, size)
-        
+            write(c, self.model[self.name], x, y+size, size)
+    def mouse_released(self, x,y, cursor):
+        cursor.set_obj(self)
+        print self.label
+
+    def key(self, k):
+        if len(k) == 1:
+            self.model[self.name] += k
+        elif k == 'BackSpace':
+            self.model[self.name] = self.model[self.name][:-1]
+        elif k == 'space':
+            self.model[self.name] += ' '
+            
 
 class TitlePage(Page):
     class TitleAct(TextfieldAct):
@@ -104,9 +124,9 @@ class TitlePage(Page):
         x,y,w,h = self.xywh()
         wlim = w/2
         self.actions.append(TextfieldAct( \
-                'Title:', w/3, h/2., wlim, 64, 'title', self.data))
+                'Title:', w/3, h/2-32., wlim, 64, 'title', self.data))
         self.actions.append(TextfieldAct( \
-                'SubTitle:', w*2/5, h/2+70., wlim, 38, 'subtitle', self.data))
+                'SubTitle:', w*2/5, h/2+40., wlim, 38, 'subtitle', self.data))
     def draw(self, c, mx, my):
         x,y,w,h = self.xywh()
         c.new_path()

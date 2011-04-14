@@ -1,6 +1,6 @@
 # deftity - a tool for interaction architect
 #
-# Copyright (C) 2008, 2009 Matti Katila
+# Copyright (C) 2008, 2009, 2011 Matti Katila
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 
-# Written by 2008, 2009 Matti J. Katila
+# Written by Matti J. Katila, 2008, 2009, 2011 
 
 
 """
@@ -64,6 +64,7 @@ class Action(object):
                self.y < y < self.y+self.h
     def activate(self):
         self.callback()
+    def mouse_released(self, x, y): pass
 
     def write(self, cr, s):
         cr.set_font_size(12)
@@ -110,6 +111,23 @@ class Circle(Action):
 class Quit(Action):
     def __init__(self):
         self.label = 'Quit'
+
+class Export(Action):
+    def __init__(self):
+        self.label = 'Export'
+    def activate(self):
+        import sys
+        w,h = pages.A4_SIZE
+        surf = cairo.PDFSurface(sys.argv[1]+'.pdf', w,h)
+        pdf = cairo.Context(surf)
+        for comp in self.tool.comps:
+            pdf.identity_matrix()
+            x,y = comp.xy
+            pdf.translate(-x,-y)
+            comp.draw(pdf, -1000, -1000)
+            pdf.show_page()
+        surf.finish()
+
 
 class Page(Action):
     def __init__(self):

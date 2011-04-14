@@ -35,7 +35,13 @@ BG = cairo.SolidPattern(1,1,1)
 GRID_FG = cairo.SolidPattern(.8,.8,.8)
 TOOLBOX_BG = cairo.SolidPattern(.4,.4,.5, .5)
 
-
+class Cursor(object):
+    def set_obj(self, obj):
+        self.obj = obj
+    def lost(self):
+        self.obj = None
+    def handle(self, foo):
+        if self.obj != None: self.obj.key(foo)
 
 class TheTool(object):
 
@@ -62,12 +68,13 @@ class TheTool(object):
         self.actions = []
 
         self.comps = []
+        self.cursor = Cursor()
 
         self.is_quit = False
 
         self.action_node = 'root'
         self.action_tree = {
-            'root': 'Screen Text Line Arrow Non Rectangle Circle Quit Page'.split(),
+            'root': 'Screen Text Line Arrow Rectangle Circle Quit Page Export'.split(),
             'page': 'TitlePage'.split(),
             }
 
@@ -120,12 +127,13 @@ class TheTool(object):
         y = rect.x + rect.height /2
         radius = min(rect.width /2, rect.height /2) - 5
 
-        c.arc(x,y, radius, 0, 2 * math.pi)
-        c.arc(0,0, radius, 0, math.pi)
-        c.set_source_rgb(1,.3,1)
-        c.fill_preserve()
-        c.set_source_rgb(0,0,0)
-        c.stroke()
+        if False:
+            c.arc(x,y, radius, 0, 2 * math.pi)
+            c.arc(0,0, radius, 0, math.pi)
+            c.set_source_rgb(1,.3,1)
+            c.fill_preserve()
+            c.set_source_rgb(0,0,0)
+            c.stroke()
 
 
         #print 'canvas position', \
@@ -191,6 +199,19 @@ class TheTool(object):
             if action.is_hit(ev.x, ev.y):
                 action.activate()
                 #self.toolbox = False
+
+        mx, my = (ev.x - self._rect.width/2 )/ self.zoom \
+                 - self.canvas_position['x'], \
+                 (ev.y - self._rect.height/2 )/ self.zoom \
+                 - self.canvas_position['y']
+        found = False
+        for comp in self.comps:
+            if comp.is_close(mx, my):
+                comp.mouse_released(mx, my, self.cursor)
+                found = True
+        if not found:
+            self.cursor.lost()
+
         print 'released'
 
     def pointer_motion(self, w, ev):
@@ -236,8 +257,7 @@ class TheTool(object):
         print ev.keyval
         keyname = gtk.gdk.keyval_name(ev.keyval)
         print "Key %s (%d) was pressed" % (keyname, ev.keyval)
-        if ev.keyval & gtk.gdk.MOD1_MASK or \
-               gtk.gdk.keyval_name(ev.keyval).startswith('Control'):
+        if gtk.gdk.keyval_name(ev.keyval).startswith('Control'):
             self.toolbox = True
             self.redraw()
             print 'alt pressed'
@@ -245,3 +265,6 @@ class TheTool(object):
         if keyname == 'q':
             self.is_quit = True
             self.redraw()
+
+        self.cursor.handle(keyname)
+        self.redraw()
