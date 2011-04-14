@@ -38,7 +38,6 @@ An action is something that may
 
 import cairo
 
-import pages
 
 ACTION_BG = cairo.SolidPattern(1,1,1,.6)
 
@@ -76,6 +75,9 @@ class Action(object):
             cr.move_to(self.x,# + cx + 0.5 - xbearing - width / 2,
                     self.y +self.h/2) # + 0.5 - fdescent + fheight / 2)
             cr.show_text(s)
+
+import pages
+
 
 class Screen(Action):
     def __init__(self):
