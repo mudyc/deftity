@@ -110,7 +110,10 @@ class Circle(Action):
 
 class Quit(Action):
     def __init__(self):
-        self.label = 'Quit'
+        self.label = 'Quit&Save'
+    def activate(self):
+        Action.activate(self)
+        self.tool.store_data()
 
 class Export(Action):
     def __init__(self):

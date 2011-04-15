@@ -78,6 +78,11 @@ class TheTool(object):
             'page': 'TitlePage'.split(),
             }
 
+    def store_data(self):
+        import sys
+        f = open(sys.argv[1], 'rw')
+        
+
     def get_actions(self):
         return self.action_tree[self.action_node]
 

@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     if len(sys.argv[1:]) != 1:
         print "Deftity needs one parameter which is the file name.\n\n", \
-              "For example: 'deftity.py foobar.ixa.png'\n"
+              "For example: 'python deftity.py my_design.dat'\n"
 
         sys.exit(1)
     
