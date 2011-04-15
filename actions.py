@@ -120,17 +120,29 @@ class Export(Action):
         self.label = 'Export'
     def activate(self):
         import sys
+        # PDF export
         w,h = pages.A4_SIZE
         surf = cairo.PDFSurface(sys.argv[1]+'.pdf', w,h)
         pdf = cairo.Context(surf)
         for comp in self.tool.comps:
             pdf.identity_matrix()
-            x,y = comp.xy
+            x,y,w,h = comp.xywh()
             pdf.translate(-x,-y)
             comp.draw(pdf, -1000, -1000)
             pdf.show_page()
         surf.finish()
 
+        # Data export
+        obs = []
+        for comp in self.tool.comps:
+            print comp
+            obs.append(comp.save_data())
+        import json
+        print obs
+        print json.dumps(obs, indent=4)
+        dat = open(sys.argv[1], 'w')
+        dat.write(json.dumps(obs, indent=4, ensure_ascii=True))
+        dat.close()
 
 class Page(Action):
     def __init__(self):
@@ -147,7 +159,13 @@ class Page(Action):
 class TitlePage(Action):
     def __init__(self):
         self.label = 'Title page'
-        
     def activate(self):
         Action.activate(self)
         self.tool.add_component(pages.TitlePage())
+
+class ChangeLogPage(Action):
+    def __init__(self):
+        self.label = 'Changelog page'
+    def activate(self):
+        Action.activate(self)
+        self.tool.add_component(pages.ChangeLogPage())

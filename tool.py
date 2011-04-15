@@ -27,6 +27,25 @@
 import gtk
 import math
 import cairo
+import json
+
+class Component(object):
+    def __init__(self): pass
+    def xywh(self): return (-500,-500,100,100)
+    def pos(self, x,y): pass
+    def size(self, w, h): pass
+    def save_data(self):
+        x,y,w,h = self.xywh()
+        cz = self.__class__
+        cz = cz.__module__ +'.'+cz.__name__
+        return {'class': cz, 'x':x,'y':y,'w':w,'h':h }
+    def load_data(self): pass
+    def is_close(self,x0,y0):
+        x,y,w,h = self.xywh()
+        return x < x0 < x+w and \
+               y < y0 < y+h
+
+
 import actions
 
 
@@ -35,7 +54,23 @@ BG = cairo.SolidPattern(1,1,1)
 GRID_FG = cairo.SolidPattern(.8,.8,.8)
 TOOLBOX_BG = cairo.SolidPattern(.4,.4,.5, .5)
 
+
+class Start(Component):
+    def draw(self, c, mx,my):
+        x,y,w,h = self.xywh()
+        c.arc(x,y, w/2, 0, 2 * math.pi)
+        c.set_source_rgb(1,.3,1)
+        c.fill_preserve()
+        c.set_source_rgb(0,0,0)
+        c.stroke()
+
+        c.set_font_size(h/4)
+        c.set_source_rgb(0,0,0)
+        c.move_to(x-w/2,y+h/8)
+        c.show_text("Start")
+
 class Cursor(object):
+    def __init__(self): self.obj = None
     def set_obj(self, obj):
         self.obj = obj
     def lost(self):
@@ -46,6 +81,7 @@ class Cursor(object):
 class TheTool(object):
 
     def __init__(self):
+        print self
         self.canvas_position = {
             'x': 0.,
             'y': 0.,
@@ -75,10 +111,38 @@ class TheTool(object):
         self.action_node = 'root'
         self.action_tree = {
             'root': 'Screen Text Line Arrow Rectangle Circle Quit Page Export'.split(),
-            'page': 'TitlePage'.split(),
+            'page': 'TitlePage ChangeLogPage'.split(),
             }
+        self.load_data()
+        if len(self.comps) == 0:
+            self.comps.append(Start())
 
-    def store_data(self):
+    def load_data(self):
+        import sys, os
+        if os.path.isfile(sys.argv[1]):
+            f = open(sys.argv[1], 'r')
+#            try:
+            pyobs = json.load(f)
+
+            import tool, pages
+            for ob in pyobs:
+                print ob['class']
+                i = eval(ob['class']+'()')
+                i.pos(ob['x'], ob['y'])
+                i.size(ob['w'], ob['h'])
+                for k in 'class x y w h'.split():
+                    del ob[k]
+                for key in ob.keys():
+                    setattr(i, key, ob[key])
+                self.comps.append(i)
+
+                if hasattr(i, 'data'): print i.data
+                
+                
+#            except:
+            print 'error in load'
+
+    def save_data(self):
         import sys
         f = open(sys.argv[1], 'rw')
         
@@ -132,15 +196,6 @@ class TheTool(object):
         y = rect.x + rect.height /2
         radius = min(rect.width /2, rect.height /2) - 5
 
-        if False:
-            c.arc(x,y, radius, 0, 2 * math.pi)
-            c.arc(0,0, radius, 0, math.pi)
-            c.set_source_rgb(1,.3,1)
-            c.fill_preserve()
-            c.set_source_rgb(0,0,0)
-            c.stroke()
-
-
         #print 'canvas position', \
         mx, my = (self.mouse_pointer['x'] - self._rect.width/2 )/ self.zoom \
                  - self.canvas_position['x'], \
@@ -166,6 +221,7 @@ class TheTool(object):
 
             idx = 0
             x_ = x
+
             for act in self.get_actions():
                 a = eval('actions.'+act+'()')
                 if hasattr(a, 'set_tool'): a.set_tool(self)
@@ -249,7 +305,7 @@ class TheTool(object):
         #for i in dir(ev): print i, eval('ev.'+i)
         print ev.keyval
         keyname = gtk.gdk.keyval_name(ev.keyval)
-        print "Key %s (%d) was pressed" % (keyname, ev.keyval)
+        print "Key %s (%d) was released" % (keyname, ev.keyval)
         if ev.keyval & gtk.gdk.MOD1_MASK or \
                gtk.gdk.keyval_name(ev.keyval).startswith('Control'):
             self.toolbox = False
@@ -261,7 +317,7 @@ class TheTool(object):
         #for i in dir(ev): print i, eval('ev.'+i)
         print ev.keyval
         keyname = gtk.gdk.keyval_name(ev.keyval)
-        print "Key %s (%d) was pressed" % (keyname, ev.keyval)
+        print "Key %s (%d) was pressed" % (keyname, ev.keyval), self
         if gtk.gdk.keyval_name(ev.keyval).startswith('Control'):
             self.toolbox = True
             self.redraw()

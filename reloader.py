@@ -52,8 +52,9 @@ class RollbackImporter:
         for modname in self.newModules.keys():
             if not self.previousModules.has_key(modname):
                 # Force reload when modname next imported
-                #print 'delete', modname
-                del(sys.modules[modname])
+                print 'delete', modname
+                if modname in sys.modules:
+                    del(sys.modules[modname])
         self.newModules = {}
         #__builtin__.__import__ = self.realImport
 
