@@ -20,7 +20,8 @@
 # Written by Matti J. Katila, 2011
 
 import cairo
-import json
+import pango
+import pangocairo
 
 import actions
 import tool
@@ -125,24 +126,70 @@ class TextfieldAct(actions.Action):
         self.modelF = model
         self.align = align
     def draw(self, c, x, y, active):
-        c.new_path()
         w, size = self.w, self.h
         content = self.modelF()[self.name]
         if active:
+            c.new_path()
             c.rectangle(x,y,w,size)
             c.close_path()
             c.set_source(cairo.SolidPattern(1,0,.7, .2))
             c.fill_preserve()
             
-            if self.align == TextfieldAct.CENTER:
-                write_center(c, self.label + content, x, w, y+size, size)
-            else:
-                write(c, self.label + content, x, y+size, size)
+            content = self.label + content
+
+        if self.align == TextfieldAct.CENTER:
+            write_center(c, content, x, w, y+size, size)
         else:
-            if self.align == TextfieldAct.CENTER:
-                write_center(c, content, x, w, y+size, size)
-            else:
-                write(c, content, x, y+size, size)
+            write(c, content, x, y+size, size)
+
+    def mouse_released(self, x,y, cursor):
+        cursor.set_obj(self)
+
+    def key(self, k):
+        if len(k) == 1:
+            self.modelF()[self.name] += k
+        elif k == 'BackSpace':
+            self.modelF()[self.name] = self.modelF()[self.name][:-1]
+        elif k == 'space':
+            self.modelF()[self.name] += ' '
+        print self.modelF()
+            
+class TextareaAct(actions.Action):
+    def __init__(self, label, x,y,w,h, size, name, model):
+        self.label = label
+        self.x, self.y, self.w, self.h = x,y,w,h
+        self.size = size
+        self.name = name
+        self.modelF = model
+    def draw(self, c, x, y, active):
+        w, size = self.w, self.h
+        print w
+        content = self.modelF()[self.name]
+        if active:
+            c.new_path()
+            c.rectangle(x,y,w,size)
+            c.close_path()
+            c.set_source(cairo.SolidPattern(1,0,.7, .2))
+            c.fill_preserve()
+
+            content = self.label + content
+
+        c.move_to(x, y)
+        pctx = pangocairo.CairoContext(c)
+        pctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
+
+        layout = pctx.create_layout()
+        fontname = "Sans "+str(self.size)
+        font = pango.FontDescription(fontname)
+        layout.set_font_description(font)
+
+        layout.set_width(int(w*pango.SCALE))
+        layout.set_wrap(pango.WRAP_WORD_CHAR)
+        layout.set_text(content)
+        c.set_source_rgb(0, 0, 0)
+        pctx.update_layout(layout)
+        pctx.show_layout(layout)
+
     def mouse_released(self, x,y, cursor):
         cursor.set_obj(self)
         print self.label
@@ -155,7 +202,7 @@ class TextfieldAct(actions.Action):
         elif k == 'space':
             self.modelF()[self.name] += ' '
         print self.modelF()
-            
+
 
 class TitlePage(Page):
     def __init__(self):
@@ -184,5 +231,24 @@ class ChangeLogPage(Page):
         x,y,w,h = self.xywh()
         write_center(c, 'Changelog', x, w, y+2*SIZE_HEADER, SIZE_HEADER)
         
+        Page.draw(self, c, self.is_close(mx,my))
+
+class DescriptionPage(Page):
+    def __init__(self):
+        Page.__init__(self)
+        self.data = { 'title': 'Project golas',
+                      'text': 'some text'}
+        x,y,w,h = self.xywh()
+        wlim = w
+        self.actions.append(TextfieldAct( \
+            'Title:', 0, SIZE_HEADER, wlim, SIZE_HEADER, 
+            'title', self.get_data))
+        self.actions.append(TextareaAct( \
+            'Text:', w/20, 2*SIZE_HEADER, 
+            w*18/20, h-2*SIZE_HEADER, SIZE_TEXT, 'text', self.get_data))
+
+    def draw(self, c, mx, my):
+        Page.draw_frame(self, c, 'Description page', mx, my)
+        x,y,w,h = self.xywh()
         Page.draw(self, c, self.is_close(mx,my))
 

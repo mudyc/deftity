@@ -45,8 +45,7 @@ def check_reload(widget, event):
 
 
         for c in WINDOW.get_children():
-            for conn in c.conns:
-                c.disconnect(conn)
+            for conn in CONNS:
                 WINDOW.disconnect(conn)
             c.destroy()
             WINDOW.remove(c)
@@ -60,8 +59,9 @@ def check_reload(widget, event):
         # Bug in pygtk. When new object is inserted into window all
         # keys stop working.
         if event != WINDOW:
-            CONNS.append(WINDOW.connect('key_release_event', area.r))
-            CONNS.append(WINDOW.connect('key_press_event', area.p))
+            t = WINDOW.get_children()[0].the_tool
+            CONNS.append(WINDOW.connect('key_release_event', t.key_released))
+            CONNS.append(WINDOW.connect('key_press_event', t.key_pressed))
         WINDOW.show_all()
 
         print 'reloaded...',WINDOW.get_children()[0]#, WINDOW.get_children()[0].the_tool

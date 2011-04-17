@@ -144,6 +144,8 @@ class Export(Action):
         dat.write(json.dumps(obs, indent=4, ensure_ascii=True))
         dat.close()
 
+        Action.activate(self)
+
 class Page(Action):
     def __init__(self):
         self.label = 'Page'
@@ -169,3 +171,10 @@ class ChangeLogPage(Action):
     def activate(self):
         Action.activate(self)
         self.tool.add_component(pages.ChangeLogPage())
+
+class DescriptionPage(Action):
+    def __init__(self):
+        self.label = 'Description page'
+    def activate(self):
+        Action.activate(self)
+        self.tool.add_component(pages.DescriptionPage())
