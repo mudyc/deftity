@@ -37,7 +37,9 @@ An action is something that may
 """
 
 import cairo
-
+import util
+import pangocairo
+import pango
 
 ACTION_BG = cairo.SolidPattern(1,1,1,.6)
 
@@ -79,6 +81,8 @@ class Action(object):
 
 import pages
 
+# Toolbox actions
+# ===============
 
 class Screen(Action):
     def __init__(self):
@@ -87,6 +91,10 @@ class Screen(Action):
 class Text(Action):
     def __init__(self):
         self.label = 'Text'
+    def activate(self):
+        import text
+        Action.activate(self)
+        self.tool.add_component(text.TextComp())
 
 class Line(Action):
     def __init__(self):
@@ -178,3 +186,101 @@ class DescriptionPage(Action):
     def activate(self):
         Action.activate(self)
         self.tool.add_component(pages.DescriptionPage())
+
+class EmptyPage(Action):
+    def __init__(self):
+        self.label = 'Empty page'
+    def activate(self):
+        Action.activate(self)
+        self.tool.add_component(pages.EmptyPage())
+
+
+# Functional actions
+# ==================
+
+
+class KeyHandler(object):
+    def key(self, k):
+        if len(k) == 1:
+            self.modelF()[self.name] += k
+        elif k == 'BackSpace':
+            self.modelF()[self.name] = self.modelF()[self.name][:-1]
+        elif k == 'space':
+            self.modelF()[self.name] += ' '
+        elif k == 'period':
+            self.modelF()[self.name] += '.'
+        elif k == 'comma':
+            self.modelF()[self.name] += ','
+        elif k == 'question':
+            self.modelF()[self.name] += '?'
+
+class TextfieldAct(Action, KeyHandler):
+    CENTER = 'center'
+    def __init__(self, label, x,y,w,h, name, model, align=CENTER):
+        self.label = label
+        self.x, self.y, self.w, self.h = x,y,w,h
+        self.name = name
+        self.modelF = model
+        self.align = align
+    def draw(self, c, x, y, active):
+        w, size = self.w, self.h
+        content = self.modelF()[self.name]
+        if active:
+            c.new_path()
+            c.rectangle(x,y,w,size)
+            c.close_path()
+            c.set_source(cairo.SolidPattern(1,0,.7, .2))
+            c.fill_preserve()
+            
+            content = self.label + content
+
+        if self.align == TextfieldAct.CENTER:
+            util.write_center(c, content, x, w, y+size, size)
+        else:
+            util.write(c, content, x, y+size, size)
+
+    def mouse_released(self, x,y, cursor):
+        cursor.set_obj(self)
+            
+class TextareaAct(Action, KeyHandler):
+    def __init__(self, label, x,y,w,h, size, name, model):
+        self.label = label
+        self.x, self.y, self.w, self.h = x,y,w,h
+        self.size = size
+        self.name = name
+        self.modelF = model
+    def draw(self, c, x, y, active):
+        w, size = self.w, self.h
+        content = self.modelF()[self.name]
+        if active:
+            c.new_path()
+            c.rectangle(x,y,w,size)
+            c.close_path()
+            c.set_source(cairo.SolidPattern(1,0,.7, .2))
+            c.fill_preserve()
+
+            content = self.label + content
+
+        c.move_to(x, y)
+        pctx = pangocairo.CairoContext(c)
+        pctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
+
+        layout = pctx.create_layout()
+        fontname = "Sans "+str(self.size)
+        font = pango.FontDescription(fontname)
+        layout.set_font_description(font)
+
+        layout.set_width(int(w*pango.SCALE))
+        layout.set_wrap(pango.WRAP_WORD_CHAR)
+        layout.set_text(content)
+        c.set_source_rgb(0, 0, 0)
+        pctx.update_layout(layout)
+        pctx.show_layout(layout)
+
+    def mouse_released(self, x,y, cursor):
+        cursor.set_obj(self)
+        print self.label
+
+    def key(self, k):
+        KeyHandler.key(self, k)
+        if k == 'Return': self.modelF()[self.name] += '\n'

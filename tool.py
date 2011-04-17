@@ -111,7 +111,7 @@ class TheTool(object):
         self.action_node = 'root'
         self.action_tree = {
             'root': 'Screen Text Line Arrow Rectangle Circle Quit Page Export'.split(),
-            'page': 'TitlePage ChangeLogPage DescriptionPage'.split(),
+            'page': 'TitlePage ChangeLogPage DescriptionPage EmptyPage'.split(),
             }
         self.load_data()
         if len(self.comps) == 0:
@@ -138,10 +138,6 @@ class TheTool(object):
 
                 if hasattr(i, 'data'): print i.data
                 
-                
-#            except:
-            print 'error in load'
-
     def save_data(self):
         import sys
         f = open(sys.argv[1], 'rw')
@@ -196,7 +192,6 @@ class TheTool(object):
         y = rect.x + rect.height /2
         radius = min(rect.width /2, rect.height /2) - 5
 
-        #print 'canvas position', \
         mx, my = (self.mouse_pointer['x'] - self._rect.width/2 )/ self.zoom \
                  - self.canvas_position['x'], \
                  (self.mouse_pointer['y'] - self._rect.height/2 )/ self.zoom \

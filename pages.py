@@ -25,7 +25,7 @@ import pangocairo
 
 import actions
 import tool
-
+import util
 
 """The page component drawn on screen.
 
@@ -41,27 +41,9 @@ SIZE_TITLE = 64
 SIZE_HEADER = 32
 SIZE_TEXT = 12
 
-def write(cr, s, x, y, size):
-    cr.set_font_size(size)
-    cr.set_source_rgb(0,0,0)
-    cr.move_to(x,y)
-    cr.show_text(s)
-    return
-
-    fascent, fdescent, fheight, fxadvance, fyadvance = cr.font_extents()
-    for cx, letter in enumerate(s):
-        xbearing, ybearing, width, height, xadvance, yadvance = (
-                cr.text_extents(letter))
-        cr.move_to(x,# + cx + 0.5 - xbearing - width / 2,
-                y) # + 0.5 - fdescent + fheight / 2)
-        cr.show_text(s)
-
-def write_center(cr, s, x, w, y, size):
-    cr.set_font_size(size)
-    x_bear, y_bear, width, height, x_adv, y_adv = cr.text_extents(s)
-    write(cr, s, x + (w-width)/2, y, size)
 
 A4_SIZE = ( 1./(25.4/72)*297., 1./(25.4/72)*210. )
+
 
 class Page(tool.Component):
     def __init__(self):
@@ -92,7 +74,7 @@ class Page(tool.Component):
         c.close_path()
         c.set_source_rgb(0,0,0)
         c.stroke()
-        write(c, label, x,y-10, 40)
+        util.write(c, label, x,y-10, 40)
 
         if self.is_close(mx,my):
             c.new_path()
@@ -117,91 +99,6 @@ class Page(tool.Component):
     def get_data(self): return self.data
        
 
-class TextfieldAct(actions.Action):
-    CENTER = 'center'
-    def __init__(self, label, x,y,w,h, name, model, align=CENTER):
-        self.label = label
-        self.x, self.y, self.w, self.h = x,y,w,h
-        self.name = name
-        self.modelF = model
-        self.align = align
-    def draw(self, c, x, y, active):
-        w, size = self.w, self.h
-        content = self.modelF()[self.name]
-        if active:
-            c.new_path()
-            c.rectangle(x,y,w,size)
-            c.close_path()
-            c.set_source(cairo.SolidPattern(1,0,.7, .2))
-            c.fill_preserve()
-            
-            content = self.label + content
-
-        if self.align == TextfieldAct.CENTER:
-            write_center(c, content, x, w, y+size, size)
-        else:
-            write(c, content, x, y+size, size)
-
-    def mouse_released(self, x,y, cursor):
-        cursor.set_obj(self)
-
-    def key(self, k):
-        if len(k) == 1:
-            self.modelF()[self.name] += k
-        elif k == 'BackSpace':
-            self.modelF()[self.name] = self.modelF()[self.name][:-1]
-        elif k == 'space':
-            self.modelF()[self.name] += ' '
-        print self.modelF()
-            
-class TextareaAct(actions.Action):
-    def __init__(self, label, x,y,w,h, size, name, model):
-        self.label = label
-        self.x, self.y, self.w, self.h = x,y,w,h
-        self.size = size
-        self.name = name
-        self.modelF = model
-    def draw(self, c, x, y, active):
-        w, size = self.w, self.h
-        print w
-        content = self.modelF()[self.name]
-        if active:
-            c.new_path()
-            c.rectangle(x,y,w,size)
-            c.close_path()
-            c.set_source(cairo.SolidPattern(1,0,.7, .2))
-            c.fill_preserve()
-
-            content = self.label + content
-
-        c.move_to(x, y)
-        pctx = pangocairo.CairoContext(c)
-        pctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
-
-        layout = pctx.create_layout()
-        fontname = "Sans "+str(self.size)
-        font = pango.FontDescription(fontname)
-        layout.set_font_description(font)
-
-        layout.set_width(int(w*pango.SCALE))
-        layout.set_wrap(pango.WRAP_WORD_CHAR)
-        layout.set_text(content)
-        c.set_source_rgb(0, 0, 0)
-        pctx.update_layout(layout)
-        pctx.show_layout(layout)
-
-    def mouse_released(self, x,y, cursor):
-        cursor.set_obj(self)
-        print self.label
-
-    def key(self, k):
-        if len(k) == 1:
-            self.modelF()[self.name] += k
-        elif k == 'BackSpace':
-            self.modelF()[self.name] = self.modelF()[self.name][:-1]
-        elif k == 'space':
-            self.modelF()[self.name] += ' '
-        print self.modelF()
 
 
 class TitlePage(Page):
@@ -210,9 +107,9 @@ class TitlePage(Page):
         self.data = { 'title': '', 'subtitle': ''}
         x,y,w,h = self.xywh()
         wlim = w
-        self.actions.append(TextfieldAct( \
+        self.actions.append(actions.TextfieldAct( \
             'Title:', x, h/2-32., wlim, 64, 'title', self.get_data))
-        self.actions.append(TextfieldAct( \
+        self.actions.append(actions.TextfieldAct( \
             'SubTitle:', x, h/2+40., wlim, 38, 'subtitle', self.get_data))
     def draw(self, c, mx, my):
         Page.draw_frame(self, c, 'Title page', mx, my)
@@ -229,7 +126,7 @@ class ChangeLogPage(Page):
     def draw(self, c, mx, my):
         Page.draw_frame(self, c, 'Changelog page', mx, my)
         x,y,w,h = self.xywh()
-        write_center(c, 'Changelog', x, w, y+2*SIZE_HEADER, SIZE_HEADER)
+        util.write_center(c, 'Changelog', x, w, y+2*SIZE_HEADER, SIZE_HEADER)
         
         Page.draw(self, c, self.is_close(mx,my))
 
@@ -240,10 +137,10 @@ class DescriptionPage(Page):
                       'text': 'some text'}
         x,y,w,h = self.xywh()
         wlim = w
-        self.actions.append(TextfieldAct( \
+        self.actions.append(actions.TextfieldAct( \
             'Title:', 0, SIZE_HEADER, wlim, SIZE_HEADER, 
             'title', self.get_data))
-        self.actions.append(TextareaAct( \
+        self.actions.append(actions.TextareaAct( \
             'Text:', w/20, 2*SIZE_HEADER, 
             w*18/20, h-2*SIZE_HEADER, SIZE_TEXT, 'text', self.get_data))
 
@@ -252,3 +149,9 @@ class DescriptionPage(Page):
         x,y,w,h = self.xywh()
         Page.draw(self, c, self.is_close(mx,my))
 
+
+class EmptyPage(Page):
+    def __init__(self):
+        Page.__init__(self)
+    def draw(self, c, mx, my):
+        Page.draw_frame(self, c, 'Page', mx, my)
