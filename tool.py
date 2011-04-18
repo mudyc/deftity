@@ -59,8 +59,9 @@ class Start(Component):
     def draw(self, c, mx,my):
         x,y,w,h = self.xywh()
         c.arc(x,y, w/2, 0, 2 * math.pi)
-        c.set_source_rgb(1,.3,1)
-        c.fill_preserve()
+        if self.is_close(mx, my):
+            c.set_source_rgb(1,.3,1)
+            c.fill_preserve()
         c.set_source_rgb(0,0,0)
         c.stroke()
 
