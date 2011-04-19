@@ -84,5 +84,5 @@ class WVGAScreen(Screen):
     def __init__(self):
         Screen.__init__(self)
         self.wh = (800, 480)
-    def draw(self, c, mx, my):
+    def draw(self, c, tc, mx, my):
         Screen.draw_frame(self, c, mx, my)

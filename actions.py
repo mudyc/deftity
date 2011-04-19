@@ -105,6 +105,7 @@ class Text(Action):
     def activate(self):
         import text
         Action.activate(self)
+        import text
         self.tool.add_component(text.TextComp())
 
 class Line(Action):
@@ -114,6 +115,9 @@ class Line(Action):
 class Arrow(Action):
     def __init__(self):
         self.label = 'Arrow'
+    def activate(self):
+        Action.activate(self)
+        self.tool.tool_context.start_arrow()
 
 class Non(Action):
     def __init__(self):
@@ -138,16 +142,34 @@ class Export(Action):
     def __init__(self):
         self.label = 'Export'
     def activate(self):
+        import tool
         import sys
         # PDF export
         w,h = pages.A4_SIZE
         surf = cairo.PDFSurface(sys.argv[1]+'.pdf', w,h)
         pdf = cairo.Context(surf)
-        for comp in self.tool.comps:
+
+        start = filter(lambda x: isinstance(x, tool.Start), self.tool.comps)[0]
+        print start
+        arrows = filter(lambda x: isinstance(x, tool.Arrow), self.tool.comps)
+        print arrows
+        while True:
+            links = filter(lambda x: x.links[0] == start, arrows)
+            print links
+            if len(links) == 0: break
+            arrow = links[0]
+            start = arrow.links[1]
+            comp = arrow.links[1]
+
             pdf.identity_matrix()
             x,y,w,h = comp.xywh()
             pdf.translate(-x,-y)
-            comp.draw(pdf, -1000, -1000)
+            for c in self.tool.comps:
+                if c == comp: continue
+                xx,yy,ww,hh = c.xywh()
+                if x < xx and y < yy and xx+ww < x+w and yy+hh < y+h:
+                    c.draw(pdf, self.tool.tool_context, -1000, -1000)
+            comp.draw(pdf, self.tool.tool_context, -1000, -1000)
             pdf.show_page()
         surf.finish()
 
@@ -250,8 +272,8 @@ class TextfieldAct(Action, KeyHandler):
         else:
             util.write(c, content, x, y+size, size)
 
-    def mouse_released(self, x,y, cursor):
-        cursor.set_obj(self)
+    def mouse_released(self, tc, x,y):
+        tc.cursor.set_obj(self)
             
 class TextareaAct(Action, KeyHandler):
     def __init__(self, label, x,y,w,h, size, name, model):
@@ -288,8 +310,8 @@ class TextareaAct(Action, KeyHandler):
         pctx.update_layout(layout)
         pctx.show_layout(layout)
 
-    def mouse_released(self, x,y, cursor):
-        cursor.set_obj(self)
+    def mouse_released(self, tc, x,y):
+        tc.cursor.set_obj(self)
         print self.label
 
     def key(self, k):

@@ -67,12 +67,15 @@ class Page(tool.Component):
             xx,yy = act.x, act.y
             act.draw(c, x+xx, y+yy, active)
 
-    def draw_frame(self, c, label, mx, my):
+    def draw_frame(self, c, tc, label, mx, my):
         x,y,w,h = self.xywh()
         c.new_path()
         c.rectangle(x,y,w,h)
         c.close_path()
-        c.set_source_rgb(0,0,0)
+        if self in tc.selected_comps:
+            c.set_source_rgb(1,0,0)
+        else:
+            c.set_source_rgb(0,0,0)
         c.stroke()
         util.write(c, label, x,y-10, 40)
 
@@ -83,13 +86,22 @@ class Page(tool.Component):
             c.set_source(cairo.SolidPattern(.8,.9,1, .2))
             c.fill_preserve()
 
-    def mouse_released(self, mx, my, cur):
+    def mouse_released(self, tc, mx, my):
         x,y,w,h = self.xywh()
         x = mx - x
         y = my - y
         for act in self.actions:
             if act.is_hit(x, y):
-                act.mouse_released(x,y, cur)
+                act.mouse_released(tc, x,y)
+
+        if tc.arrow in [tool.ToolContext.ARROW_START,
+                        tool.ToolContext.ARROW_END]:
+            if tc.arrow_comps == []:
+                tc.set_arrow(self)
+            elif isinstance(tc.arrow_comps[0], tool.Start) \
+                 or isinstance(tc.arrow_comps[0], Page):
+                tc.set_arrow(self)
+
 
     def save_data(self):
         ret = tool.Component.save_data(self)
@@ -111,8 +123,8 @@ class TitlePage(Page):
             'Title:', x, h/2-32., wlim, 64, 'title', self.get_data))
         self.actions.append(actions.TextfieldAct( \
             'SubTitle:', x, h/2+40., wlim, 38, 'subtitle', self.get_data))
-    def draw(self, c, mx, my):
-        Page.draw_frame(self, c, 'Title page', mx, my)
+    def draw(self, c, tc, mx, my):
+        Page.draw_frame(self, c, tc, 'Title page', mx, my)
 
         Page.draw(self, c, self.is_close(mx,my))
 
@@ -123,8 +135,8 @@ class ChangeLogPage(Page):
                       'row1': ['0.1', 'Foo']}
         x,y,w,h = self.xywh()
         wlim = w/2
-    def draw(self, c, mx, my):
-        Page.draw_frame(self, c, 'Changelog page', mx, my)
+    def draw(self, c, tc, mx, my):
+        Page.draw_frame(self, c, tc, 'Changelog page', mx, my)
         x,y,w,h = self.xywh()
         util.write_center(c, 'Changelog', x, w, y+2*SIZE_HEADER, SIZE_HEADER)
         
@@ -144,8 +156,8 @@ class DescriptionPage(Page):
             'Text:', w/20, 2*SIZE_HEADER, 
             w*18/20, h-2*SIZE_HEADER, SIZE_TEXT, 'text', self.get_data))
 
-    def draw(self, c, mx, my):
-        Page.draw_frame(self, c, 'Description page', mx, my)
+    def draw(self, c, tc, mx, my):
+        Page.draw_frame(self, c, tc, 'Description page', mx, my)
         x,y,w,h = self.xywh()
         Page.draw(self, c, self.is_close(mx,my))
 
@@ -153,5 +165,5 @@ class DescriptionPage(Page):
 class EmptyPage(Page):
     def __init__(self):
         Page.__init__(self)
-    def draw(self, c, mx, my):
-        Page.draw_frame(self, c, 'Page', mx, my)
+    def draw(self, c, tc, mx, my):
+        Page.draw_frame(self, c, tc, 'Page', mx, my)

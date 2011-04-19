@@ -33,10 +33,14 @@ class TextComp(tool.Component, actions.KeyHandler):
         self.data = { 'text': 'Text..' }
         self.modelF = self.get_data
         self.name = 'text'
+    def save_data(self):
+        ret = tool.Component.save_data(self)
+        ret['data'] = self.data
+        return ret
     def get_data(self): return self.data
     def pos(self, x,y): self.xy = [ x,y]
     def xywh(self): return (self.xy[0], self.xy[1], self.wh[0], self.wh[1])
-    def draw(self, c, mx, my):
+    def draw(self, c, tc, mx, my):
         x,y,w,h = self.xywh()
         if self.is_close(mx, my):
             c.new_path()
@@ -57,15 +61,18 @@ class TextComp(tool.Component, actions.KeyHandler):
         layout.set_width(int(w*pango.SCALE))
         layout.set_wrap(pango.WRAP_WORD_CHAR)
         layout.set_text(self.modelF()[self.name])
-        c.set_source_rgb(0, 0, 0)
+        if self in tc.selected_comps:
+            c.set_source_rgb(1, 0, 0)
+        else:
+            c.set_source_rgb(0, 0, 0)
         pctx.update_layout(layout)
         pctx.show_layout(layout)
 
-    def mouse_released(self, x,y, cursor):
-        cursor.set_obj(self)
+    def mouse_released(self, tc, x,y):
+        tc.cursor.set_obj(self)
 
     def key(self, k):
-        KeyHandler.key(self, k)
+        actions.KeyHandler.key(self, k)
         if k == 'Return': self.modelF()[self.name] += '\n'
         if self.modelF()[self.name] == '':
             self.tool.comps.remove(self)
