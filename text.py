@@ -60,6 +60,7 @@ class TextComp(tool.Component, actions.KeyHandler):
 
         layout.set_width(int(w*pango.SCALE))
         layout.set_wrap(pango.WRAP_WORD_CHAR)
+        layout.set_justify(True)
         layout.set_text(self.modelF()[self.name])
         if self in tc.selected_comps:
             c.set_source_rgb(1, 0, 0)
