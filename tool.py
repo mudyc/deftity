@@ -113,6 +113,7 @@ class TheTool(object):
         self.action_tree = {
             'root': 'Screen Text Line Arrow Rectangle Circle Quit Page Export'.split(),
             'page': 'TitlePage ChangeLogPage DescriptionPage EmptyPage'.split(),
+            'screen': 'WVGAScreen'.split(),
             }
         self.load_data()
         if len(self.comps) == 0:

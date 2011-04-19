@@ -80,6 +80,7 @@ class Action(object):
             cr.show_text(s)
 
 import pages
+import screens
 
 # Toolbox actions
 # ===============
@@ -87,6 +88,16 @@ import pages
 class Screen(Action):
     def __init__(self):
         self.label = 'Screen'
+    def activate(self):
+        self.tool.action_node = 'screen'
+        self.tool.redraw()
+
+class WVGAScreen(Action):
+    def __init__(self):
+        self.label = 'WVGA'
+    def activate(self):
+        Action.activate(self)
+        self.tool.add_component(screens.WVGAScreen())
 
 class Text(Action):
     def __init__(self):
