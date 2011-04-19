@@ -85,18 +85,22 @@ class Arrow(Component):
         degrees = 0.5
 
         c.set_source_rgb(0, 0, 0)
-        c.move_to(ax, ay)
-        c.line_to(bx, by)
-        c.set_line_width(0.92)
-        
+        #c.move_to(ax, ay)
+        xx,yy = ax-bx, ay-by
+        l = math.sqrt(xx**2 + yy**2)/2
         angle = math.atan2(by - ay, bx - ax) + math.pi;
 
-        x1 = bx + lenght * math.cos(angle - degrees);
-        y1 = by + lenght * math.sin(angle - degrees);
+        xx = bx + l * math.cos(angle + degrees);
+        yy = by + l * math.sin(angle + degrees);
+        c.curve_to(ax,ay, xx, yy, bx, by)
+        c.set_line_width(0.92)
+
+        x1 = bx + lenght * math.cos(angle )
+        y1 = by + lenght * math.sin(angle )
         c.move_to(x1, y1)
         c.line_to(bx, by)
-        x2 = bx + lenght * math.cos(angle + degrees);
-        y2 = by + lenght * math.sin(angle + degrees);
+        x2 = bx + lenght * math.cos(angle + 2*degrees);
+        y2 = by + lenght * math.sin(angle + 2*degrees);
         c.move_to(x2, y2)
         c.line_to(bx, by)
 
@@ -191,8 +195,37 @@ class ToolContext(object):
             self.arrow_comps.append(comp)
             self.tool.add_component(Arrow(self.arrow_comps))
             self.arrow_comps = []
+
+    def draw_move_scale(self, c, mx, my):
+        if len(self.selected_comps) == 0: return
+        x,y = math.pow(2, 30), math.pow(2, 30)
+        xx,yy = -math.pow(2,30), -math.pow(2, 30)
+        for comp in self.selected_comps:
+            X,Y,W,H = comp.xywh()
+            x = min(x, X)
+            y = min(y, Y)
+            xx = max(xx, X+W)
+            yy = max(yy, Y+H)
+        c.new_path()
+        
+        c.rectangle(x,y,xx-x,yy-y)
+        c.set_source_rgb(1,0,0)
+        c.close_path()
+
+        gap = 150*0.3/self.tool.zoom
+
+        c.move_to(x, y+gap)
+        c.line_to(xx, y+gap)
+        c.move_to(x, yy-gap)
+        c.line_to(xx, yy-gap)
+        c.move_to(x+gap, y)
+        c.line_to(x+gap, yy)
+        c.move_to(xx-gap, y)
+        c.line_to(xx-gap, yy)
+        c.stroke()
             
     def draw(self, c):
+
         c.identity_matrix()
         if self.arrow == ToolContext.ARROW_START:
             util.write(c, 'Select arrow start component.', 40,40, 32)
@@ -241,9 +274,10 @@ class TheTool(object):
 
         self.action_node = 'root'
         self.action_tree = {
-            'root': 'Screen Text Line Arrow Rectangle Circle Quit Page Export'.split(),
+            'root': 'Screen Text Draw Arrow  Quit Page Export'.split(),
             'page': 'TitlePage ChangeLogPage DescriptionPage EmptyPage'.split(),
             'screen': 'WVGAScreen'.split(),
+            'draw': 'Image Line Rectangle Circle'.split()
             }
         self.load_data()
         if len(self.comps) == 0:
@@ -256,7 +290,7 @@ class TheTool(object):
 #            try:
             pyobs = json.load(f)
 
-            import tool, pages, text
+            import tool, pages, text, image
             for ob in pyobs:
                 print ob['class']
                 i = eval(ob['class']+'()')
@@ -332,9 +366,12 @@ class TheTool(object):
         y = rect.x + rect.height /2
         radius = min(rect.width /2, rect.height /2) - 5
 
-        mx, my = self.screen2canvas_pt(self.mouse_pointer['x'], self.mouse_pointer['y'])
+        mx, my = self.screen2canvas_pt(self.mouse_pointer['x'], 
+                                       self.mouse_pointer['y'])
         for comp in self.comps:
             comp.draw(c, self.tool_context, mx, my)
+
+        self.tool_context.draw_move_scale(c, mx, my)
 
         def draw_toolbox(c, point):
             w, h = 42*3, 38*3
@@ -470,8 +507,9 @@ class TheTool(object):
         if gtk.gdk.keyval_name(ev.keyval).startswith('Alt_'):
             self.tool_context.is_move_scale = True
         if gtk.gdk.keyval_name(ev.keyval).startswith('Shift_'):
-            self.tool_context.selected_xywh[0] = self.mouse_pointer['x']
-            self.tool_context.selected_xywh[1] = self.mouse_pointer['y']
+            s = self.tool_context.selected_xywh
+            s[0] = s[2] = self.mouse_pointer['x']
+            s[1] = s[3] = self.mouse_pointer['y']
             self.tool_context.is_selection = True
 
         if keyname == 'q':

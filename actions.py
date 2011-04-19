@@ -46,7 +46,7 @@ ACTION_BG = cairo.SolidPattern(1,1,1,.6)
 
 class Action(object):
     def __init__(self):
-        self.label = ''
+        self.label = self.__class__.__name__
     def draw(self, cx, x, y, w=1, h=1):
         self.x, self.y = x, y
         self.w, self.h = w, h
@@ -105,8 +105,18 @@ class Text(Action):
     def activate(self):
         import text
         Action.activate(self)
-        import text
         self.tool.add_component(text.TextComp())
+
+class Draw(Action):
+    def activate(self):
+        self.tool.action_node = 'draw'
+        self.tool.redraw()
+
+class Image(Action):
+    def activate(self):
+        import image
+        Action.activate(self)
+        self.tool.add_component(image.ImgComp())
 
 class Line(Action):
     def __init__(self):
