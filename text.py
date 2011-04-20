@@ -55,6 +55,7 @@ class TextComp(tool.Component, actions.KeyHandler):
         pctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
 
         layout = pctx.create_layout()
+        self.layout = layout
         fontname = "Sans "+str(self.size)
         font = pango.FontDescription(fontname)
         layout.set_font_description(font)
@@ -70,11 +71,12 @@ class TextComp(tool.Component, actions.KeyHandler):
         pctx.update_layout(layout)
         pctx.show_layout(layout)
 
-    def mouse_released(self, tc, x,y):
-        tc.cursor.set_obj(self)
+    def mouse_released(self, tc, mx,my):
+        x,y,w,h = self.xywh()
+        tc.cursor.set_obj(self, self.layout.xy_to_index(
+            int((mx-x)*pango.SCALE), int((my-y)*pango.SCALE))[0])
 
-    def key(self, k):
-        actions.KeyHandler.key(self, k)
-        if k == 'Return': self.modelF()[self.name] += '\n'
+    def key(self, k, cur=None):
+        actions.KeyHandler.key(self, k, cur, {'Return': '\n'})
         if self.modelF()[self.name] == '':
             self.tool.comps.remove(self)

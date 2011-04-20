@@ -243,19 +243,31 @@ class EmptyPage(Action):
 
 
 class KeyHandler(object):
-    def key(self, k):
-        if len(k) == 1:
-            self.modelF()[self.name] += k
-        elif k == 'BackSpace':
-            self.modelF()[self.name] = self.modelF()[self.name][:-1]
-        elif k == 'space':
-            self.modelF()[self.name] += ' '
-        elif k == 'period':
-            self.modelF()[self.name] += '.'
-        elif k == 'comma':
-            self.modelF()[self.name] += ','
-        elif k == 'question':
-            self.modelF()[self.name] += '?'
+    def key(self, k, cur, _kmap=None):
+        insert = ''
+        kmap = {'space':' ', 'period':',', 'comma':'.', 'question':'?',
+                'minus':'-', 'asterisk':'*', }
+        if k in kmap:
+            insert = kmap[k]
+        elif _kmap != None and k in _kmap:
+            insert = _kmap[k]
+        elif len(k) == 1:
+            insert = k
+        s = self.modelF()[self.name]
+        if insert != '':
+            s = s[:cur.pos] + insert + s[cur.pos:]
+            cur.pos += 1
+            
+        if k == 'BackSpace':
+            s = s[:cur.pos-1] + s[cur.pos:]
+            cur.pos -= 1
+        if k == 'Left':
+            cur.pos -= 1
+        if k == 'Right':
+            cur.pos += 1
+        if k == 'Delete':
+            s = s[:cur.pos] + s[cur.pos+1:]
+        self.modelF()[self.name] = s
 
 class TextfieldAct(Action, KeyHandler):
     CENTER = 'center'
@@ -324,9 +336,8 @@ class TextareaAct(Action, KeyHandler):
 
     def mouse_released(self, tc, x,y):
         tc.cursor.set_obj(self, self.layout.xy_to_index(
-            int(x*pango.SCALE), int(y*pango.SCALE)))
+            int((x-self.x)*pango.SCALE), int((y-self.y)*pango.SCALE))[0])
         print self.label
 
-    def key(self, k):
-        KeyHandler.key(self, k)
-        if k == 'Return': self.modelF()[self.name] += '\n'
+    def key(self, k, cur):
+        KeyHandler.key(self, k, cur, {'Return': '\n'})

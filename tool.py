@@ -45,7 +45,6 @@ class Component(object):
         return x < x0 < x+w and \
                y < y0 < y+h
 
-
 class Arrow(Component):
     def __init__(self, links=None):
         self.data = {}
@@ -174,7 +173,7 @@ class ToolContext(object):
         def lost(self):
             self.obj = None
         def handle(self, foo):
-            if self.obj != None: self.obj.key(foo)
+            if self.obj != None: self.obj.key(foo, self)
 
     def __init__(self, tool):
         self.tool = tool
@@ -416,7 +415,6 @@ class TheTool(object):
         import sys, os
         if os.path.isfile(sys.argv[1]):
             f = open(sys.argv[1], 'r')
-#            try:
             pyobs = json.load(f)
 
             import tool, pages, text, image
@@ -659,7 +657,6 @@ class TheTool(object):
             self.redraw()
 
         if self.tool_context.selected_comps != [] and keyname == 'Delete':
-            print 'asdfadsf'
             self.tool_context.select_deleted()
 
         self.tool_context.cursor.handle(keyname)
