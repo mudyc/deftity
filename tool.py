@@ -76,7 +76,21 @@ class Arrow(Component):
         self.links = (a,b)
         
     def pos(self, x,y): pass
-    def is_close(self, mx, my): pass
+    #def is_close(self, mx, my): pass
+    def xywh(self):
+        a, b = self.links
+        ax,ay,aw,ah = a.xywh()
+        bx,by,bw,bh = b.xywh()
+        x = min(ax, bx)
+        y = min(ay, by)
+        #w = max(ax+aw, bx+bw)
+        #h = max(ay+ah, by+bh)
+        w = max(ax, bx)
+        h = max(ay, by)
+        w = w - x
+        h = h - y
+        return (x,y,w,h)
+        
     def draw(self, c, tc, mx, my):
         a,b = self.links
         ax,ay,aw,ah = a.xywh()
@@ -84,12 +98,16 @@ class Arrow(Component):
         lenght = 35
         degrees = 0.5
 
-        c.set_source_rgb(0, 0, 0)
+        if self in tc.selected_comps:
+            c.set_source_rgb(1, 0, 0)
+        else:
+            c.set_source_rgb(0, 0, 0)
         #c.move_to(ax, ay)
         xx,yy = ax-bx, ay-by
         l = math.sqrt(xx**2 + yy**2)/2
         angle = math.atan2(by - ay, bx - ax) + math.pi;
 
+        c.new_path()
         xx = bx + l * math.cos(angle + degrees);
         yy = by + l * math.sin(angle + degrees);
         c.curve_to(ax,ay, xx, yy, bx, by)
@@ -105,7 +123,7 @@ class Arrow(Component):
         c.line_to(bx, by)
 
         c.stroke()
-
+    def mouse_released(self, tc, x,y): pass
 
 
 import actions
@@ -140,10 +158,19 @@ class ToolContext(object):
     ARROW_END = 2
     ARROW_NONE = 3
 
+    HLEFT = 1
+    HCENTER = 2
+    HRIGHT = 3
+    VTOP = 4
+    VCENTER = 5
+    VBOTTOM = 6
+
     class Cursor(object):
         def __init__(self): self.obj = None
-        def set_obj(self, obj):
+        def set_obj(self, obj, pos = -1):
             self.obj = obj
+            self.pos = pos
+            print pos
         def lost(self):
             self.obj = None
         def handle(self, foo):
@@ -162,8 +189,10 @@ class ToolContext(object):
 
         # Shift selection?
         self.is_selection = False
+        self.is_selection_active = False
         self.selected_xywh = [0,0,0,0]
         self.selected_comps = []
+        self.selection_mode = [None, None]
     def handle_selection(self):
         s = self.selected_xywh
         if s[2] < 0:
@@ -195,9 +224,91 @@ class ToolContext(object):
             self.arrow_comps.append(comp)
             self.tool.add_component(Arrow(self.arrow_comps))
             self.arrow_comps = []
+    def selection_pressed(self, xy):
+        x,y,xx,yy = self._selection_xyxxyy()
+        gap = 150*0.3/self.tool.zoom
+        self.selection_mode = [None, None]
+        self.is_selection_active = False
+        if xx - x < gap*3 or yy - y < gap*3:
+            x, y, xx, yy = x-gap, y-gap, xx+gap, yy+gap
+        if x < xy[0] < xx and y < xy[1] < yy:
+            if x < xy[0] < x+gap:
+                self.selection_mode[0] = ToolContext.HLEFT
+            elif x+gap < xy[0] < xx-gap:
+                self.selection_mode[0] = ToolContext.HCENTER
+            elif xx-gap < xy[0] < xx:
+                self.selection_mode[0] = ToolContext.HRIGHT
+            if y < xy[1] < y+gap:
+                self.selection_mode[1] = ToolContext.VTOP
+            elif y+gap < xy[1] < yy-gap:
+                self.selection_mode[1] = ToolContext.VCENTER
+            elif yy-gap < xy[1] < yy:
+                self.selection_mode[1] = ToolContext.VBOTTOM
+            self.is_selection_active = True
+            self.selection_xy = xy
 
-    def draw_move_scale(self, c, mx, my):
-        if len(self.selected_comps) == 0: return
+    def selection_move(self, xy):
+        x,y = self.selection_xy
+        X = xy[0] - x
+        Y = xy[1] - y
+        SX = X
+        SY = Y
+        if self.selection_mode in [
+            [ToolContext.HLEFT, ToolContext.VBOTTOM],
+            [ToolContext.HLEFT, ToolContext.VCENTER],
+            [ToolContext.HCENTER, ToolContext.VCENTER],
+            [ToolContext.HLEFT, ToolContext.VTOP],
+            [ToolContext.HCENTER, ToolContext.VTOP],
+            [ToolContext.HRIGHT, ToolContext.VTOP]]:
+            if self.selection_mode == [ToolContext.HCENTER,
+                                       ToolContext.VCENTER]:
+                pass
+            elif self.selection_mode[0] in [ToolContext.HCENTER,
+                                            ToolContext.HRIGHT]:
+                X = 0
+            elif self.selection_mode[1] in [ToolContext.VCENTER,
+                                            ToolContext.VBOTTOM]:
+                Y = 0
+        else:
+            X = Y = 0
+        if self.selection_mode != [ToolContext.HCENTER,
+                                   ToolContext.VCENTER]:
+            if self.selection_mode[0] == ToolContext.HCENTER:
+                SX = 0
+            elif self.selection_mode[1] == ToolContext.VCENTER:
+                SY = 0
+            if self.selection_mode[0] == ToolContext.HLEFT:
+                print 'xsmall'
+                SX *= -1
+            if self.selection_mode[1] == ToolContext.VTOP:
+                print 'ysmall'
+                SY *= -1
+        else:
+            SX = SY = 0
+                
+        for c in self.selected_comps:
+            x,y,w,h = c.xywh()
+            c.pos(x+X, y+Y)
+            if len(self.selected_comps) == 1:
+                c.size(w+SX, h+SY)
+            
+        self.selection_xy = xy
+        self.tool.redraw()
+    def selection_released(self, xy):
+        self.selection_mode = [None, None]
+        self.is_selection_active = False
+    def select_deleted(self):
+        for c in self.selected_comps:
+            for linked in filter(lambda x: isinstance(x, Arrow) and \
+                                 (x.links[0] == c or x.links[1] == c),
+                                 self.tool.comps):
+                self.tool.comps.remove(linked)
+                print 'del', linked
+            self.tool.comps.remove(c)
+            print 'del', c
+        self.selected_comps = []
+                
+    def _selection_xyxxyy(self):
         x,y = math.pow(2, 30), math.pow(2, 30)
         xx,yy = -math.pow(2,30), -math.pow(2, 30)
         for comp in self.selected_comps:
@@ -206,22 +317,40 @@ class ToolContext(object):
             y = min(y, Y)
             xx = max(xx, X+W)
             yy = max(yy, Y+H)
+        return (x, y, xx, yy)
+    def draw_move_scale(self, c, mx, my):
+        if len(self.selected_comps) == 0: return
+        x,y,xx,yy = self._selection_xyxxyy()
         c.new_path()
-        
         c.rectangle(x,y,xx-x,yy-y)
         c.set_source_rgb(1,0,0)
         c.close_path()
 
         gap = 150*0.3/self.tool.zoom
+        if xx - x < gap*3 or yy - y < gap*3:
+            c.new_path()
+            c.rectangle(x-gap,y-gap,xx-x+2*gap,yy-y+2*gap)
+            c.set_source_rgb(1,0,0)
+            c.close_path()
 
-        c.move_to(x, y+gap)
-        c.line_to(xx, y+gap)
-        c.move_to(x, yy-gap)
-        c.line_to(xx, yy-gap)
-        c.move_to(x+gap, y)
-        c.line_to(x+gap, yy)
-        c.move_to(xx-gap, y)
-        c.line_to(xx-gap, yy)
+            c.move_to(x-gap, y)
+            c.line_to(xx+gap, y)
+            c.move_to(x, y-gap)
+            c.line_to(x, yy+gap)
+            c.move_to(x-gap, yy)
+            c.line_to(xx+gap, yy)
+            c.move_to(xx, y-gap)
+            c.line_to(xx, yy+gap)
+
+        else:
+            c.move_to(x, y+gap)
+            c.line_to(xx, y+gap)
+            c.move_to(x, yy-gap)
+            c.line_to(xx, yy-gap)
+            c.move_to(x+gap, y)
+            c.line_to(x+gap, yy)
+            c.move_to(xx-gap, y)
+            c.line_to(xx-gap, yy)
         c.stroke()
             
     def draw(self, c):
@@ -421,20 +550,28 @@ class TheTool(object):
         self.drag_button = ev.button
         self.old_zoom = self.zoom
         print 'pressed', self.drag_button
+        if len(self.tool_context.selected_comps) > 0:
+            self.tool_context.selection_pressed(
+                self.screen2canvas_pt(ev.x, ev.y))
+        
 
     def mouse_released(self, w, ev):
         if self.drag_start_position != None:
             self.drag_start_position = None
+
+        if self.tool_context.is_selection_active:
+            self.tool_context.selection_released(
+                self.screen2canvas_pt(ev.x, ev.y))
+            self.redraw()
+            return
+
 
         for action in self.actions:
             if action.is_hit(ev.x, ev.y):
                 action.activate()
                 #self.toolbox = False
 
-        mx, my = (ev.x - self._rect.width/2 )/ self.zoom \
-                 - self.canvas_position['x'], \
-                 (ev.y - self._rect.height/2 )/ self.zoom \
-                 - self.canvas_position['y']
+        mx, my = self.screen2canvas_pt(ev.x, ev.y)
         found = False
         for comp in self.comps:
             if comp.is_close(mx, my):
@@ -452,6 +589,11 @@ class TheTool(object):
         #print 'canvas position', \
         #      (ev.x - self._rect.width/2 )/ self.zoom - self.canvas_position['x'], \
         #      (ev.y - self._rect.height/2 )/ self.zoom - self.canvas_position['y']
+        if self.tool_context.is_selection_active:
+            self.tool_context.selection_move(
+                self.screen2canvas_pt(ev.x, ev.y))
+            self.redraw()
+            return
         
         if not self.toolbox:
             self.mouse_pointer['x'] = ev.x
@@ -515,6 +657,10 @@ class TheTool(object):
         if keyname == 'q':
             self.is_quit = True
             self.redraw()
+
+        if self.tool_context.selected_comps != [] and keyname == 'Delete':
+            print 'asdfadsf'
+            self.tool_context.select_deleted()
 
         self.tool_context.cursor.handle(keyname)
         self.redraw()

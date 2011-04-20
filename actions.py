@@ -292,6 +292,7 @@ class TextareaAct(Action, KeyHandler):
         self.size = size
         self.name = name
         self.modelF = model
+        self.layout = None
     def draw(self, c, x, y, active):
         w, size = self.w, self.h
         content = self.modelF()[self.name]
@@ -309,6 +310,7 @@ class TextareaAct(Action, KeyHandler):
         pctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
 
         layout = pctx.create_layout()
+        self.layout = layout
         fontname = "Sans "+str(self.size)
         font = pango.FontDescription(fontname)
         layout.set_font_description(font)
@@ -321,7 +323,8 @@ class TextareaAct(Action, KeyHandler):
         pctx.show_layout(layout)
 
     def mouse_released(self, tc, x,y):
-        tc.cursor.set_obj(self)
+        tc.cursor.set_obj(self, self.layout.xy_to_index(
+            int(x*pango.SCALE), int(y*pango.SCALE)))
         print self.label
 
     def key(self, k):

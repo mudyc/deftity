@@ -33,6 +33,20 @@ class ImgComp(tool.Component):
             'File:', 0, 20, 400, 16, 'file', self.get_data)
         self.img = None
     def pos(self, x,y): self.xy = [x,y]
+    def size(self, w,h):
+        self.wh = [w,h]
+        if self.img == None: return
+        ratio = float(self.img.get_width())/float(self.img.get_height())
+        ratio2 = float(w)/float(h)
+        print self.wh, w, h, ratio, ratio2
+        # intent is to make bigger?
+        int_bigger = w*h > self.wh[0]*self.wh[1]
+        bigger = w*(w/ratio) < (h*ratio*h) 
+        if bigger and int_bigger or not bigger and not int_bigger:
+            self.wh = [h*ratio, h]
+        elif bigger and not int_bigger or not bigger and int_bigger:
+            self.wh = [w, w/ratio]
+        
     def xywh(self): return (self.xy[0], self.xy[1], self.wh[0], self.wh[1])
     def get_data(self): return self.data
     def save_data(self):
@@ -54,7 +68,8 @@ class ImgComp(tool.Component):
             self.img = cairo.ImageSurface.create_from_png(self.data['file'])
             width = self.img.get_width()
             height = self.img.get_height()
-            self.wh = [ width, height ]
+            if float(width)/float(height) - float(self.wh[0])/float(self.wh[1]) > 0.05:
+                pass #self.wh = [ width, height ]
             self.imgpat = cairo.SurfacePattern(self.img)
         except: traceback.print_exc()
         

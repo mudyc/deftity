@@ -39,6 +39,7 @@ class TextComp(tool.Component, actions.KeyHandler):
         return ret
     def get_data(self): return self.data
     def pos(self, x,y): self.xy = [ x,y]
+    def size(self, w,h): self.wh = [w,h]
     def xywh(self): return (self.xy[0], self.xy[1], self.wh[0], self.wh[1])
     def draw(self, c, tc, mx, my):
         x,y,w,h = self.xywh()
