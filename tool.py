@@ -402,10 +402,11 @@ class TheTool(object):
 
         self.action_node = 'root'
         self.action_tree = {
-            'root': 'Screen Text Draw Arrow  Quit Page Export'.split(),
+            'root': 'Screen Text Draw Arrow States Quit Page Export'.split(),
             'page': 'TitlePage ChangeLogPage DescriptionPage EmptyPage'.split(),
             'screen': 'WVGAScreen'.split(),
-            'draw': 'Image Line Rectangle Circle'.split()
+            'draw': 'Image Line Rectangle Circle'.split(),
+            'sm': 'SMStart SMEnd SMState'.split(), 
             }
         self.load_data()
         if len(self.comps) == 0:
@@ -417,7 +418,7 @@ class TheTool(object):
             f = open(sys.argv[1], 'r')
             pyobs = json.load(f)
 
-            import tool, pages, text, image
+            import tool, pages, text, image, statem
             for ob in pyobs:
                 print ob['class']
                 i = eval(ob['class']+'()')

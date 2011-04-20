@@ -81,6 +81,7 @@ class Action(object):
 
 import pages
 import screens
+import statem
 
 # Toolbox actions
 # ===============
@@ -196,6 +197,35 @@ class Export(Action):
         dat.close()
 
         Action.activate(self)
+
+class States(Action):
+    def set_tool(self, tool):
+        self.tool = tool
+
+    def activate(self):
+        self.tool.action_node = 'sm'
+        self.tool.redraw()
+
+class SMStart(Action):
+    def __init__(self):
+        self.label = 'Start'
+    def activate(self):
+        Action.activate(self)
+        import statem
+        self.tool.add_component(statem.Start())
+class SMEnd(Action):
+    def __init__(self):
+        self.label = 'End'
+    def activate(self):
+        Action.activate(self)
+        self.tool.add_component(statem.End())
+class SMState(Action):
+    def __init__(self):
+        self.label = 'State'
+    def activate(self):
+        Action.activate(self)
+        self.tool.add_component(statem.State())
+
 
 class Page(Action):
     def __init__(self):
