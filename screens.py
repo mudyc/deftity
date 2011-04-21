@@ -41,6 +41,15 @@ class Screen(tool.Component):
         return ( self.xy[0], self.xy[1], self.wh[0], self.wh[1])
     def pos(self, x,y):
         self.xy = [x, y]
+    def size(self, w,h):
+        ratio = float(self.WH[0])/float(self.WH[1])
+        # intent is to make bigger?
+        int_bigger = w*h > self.wh[0]*self.wh[1]
+        bigger = w*(w/ratio) < (h*ratio*h) 
+        if bigger and int_bigger or not bigger and not int_bigger:
+            self.wh = [h*ratio, h]
+        elif bigger and not int_bigger or not bigger and int_bigger:
+            self.wh = [w, w/ratio]
 
     def is_close(self,x0,y0):
         x,y,w,h = self.xywh()
@@ -83,6 +92,6 @@ class Screen(tool.Component):
 class WVGAScreen(Screen):
     def __init__(self):
         Screen.__init__(self)
-        self.wh = (800, 480)
+        self.wh = self.WH = (800, 480)
     def draw(self, c, tc, mx, my):
         Screen.draw_frame(self, c, mx, my)

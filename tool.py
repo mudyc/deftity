@@ -418,7 +418,7 @@ class TheTool(object):
             f = open(sys.argv[1], 'r')
             pyobs = json.load(f)
 
-            import tool, pages, text, image, statem
+            import tool, pages, text, image, statem, screens
             for ob in pyobs:
                 print ob['class']
                 i = eval(ob['class']+'()')
