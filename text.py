@@ -30,7 +30,7 @@ import actions
 class TextComp(tool.Component, actions.KeyHandler):
     def __init__(self):
         self.wh = [100, 40]
-        self.data = { 'text': 'Text..' }
+        self.data = { 'text': 'Text..', 'size': '' }
         self.modelF = self.get_data
         self.name = 'text'
     def save_data(self):
@@ -56,7 +56,7 @@ class TextComp(tool.Component, actions.KeyHandler):
 
         layout = pctx.create_layout()
         self.layout = layout
-        fontname = "Sans "+str(self.size)
+        fontname = "Sans "+str(self.data['size'])
         font = pango.FontDescription(fontname)
         layout.set_font_description(font)
 

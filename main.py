@@ -38,7 +38,8 @@ CONNS = []
 RELOADER = 'placeholder'
 
 def check_reload(widget, event):
-    #print event, event.type, event.string, event.keyval, event.hardware_keycode, event.state
+    if event != widget:
+        print event, event.type, event.string, event.keyval, event.hardware_keycode, event.state
     if event == WINDOW or \
            (event.state & gtk.gdk.CONTROL_MASK \
             and event.keyval == ord('r')):
@@ -60,9 +61,20 @@ def check_reload(widget, event):
         # keys stop working.
         if event != WINDOW:
             t = WINDOW.get_children()[0].the_tool
-            CONNS.append(WINDOW.connect('key_release_event', t.key_released))
-            CONNS.append(WINDOW.connect('key_press_event', t.key_pressed))
+            #CONNS.append(WINDOW.connect('key_release_event', t.key_released))
+            #CONNS.append(WINDOW.connect('key_press_event', t.key_pressed))
         WINDOW.show_all()
+
+        def fix(type_):
+            ev=gtk.gdk.Event(gtk.gdk.KEY_PRESS)
+            ev.window = WINDOW.window
+            import time
+            ev.time = long(time.time())
+            ev.state = 65363
+            ev.keyval = 114
+            gtk.main_do_event(ev)
+        fix(gtk.gdk.KEY_PRESS)
+        fix(gtk.gdk.KEY_RELEASE)
 
         print 'reloaded...',WINDOW.get_children()[0]#, WINDOW.get_children()[0].the_tool
     return False

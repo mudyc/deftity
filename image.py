@@ -57,8 +57,8 @@ class ImgComp(tool.Component):
         self.load()
     def mouse_released(self, tc, mx, my):
         tc.cursor.set_obj(self)
-    def key(self, k):
-        self.act.key(k)
+    def key(self, k, cur):
+        self.act.key(k, cur)
         self.img = None
         self.wh = [100,100]
         self.load()

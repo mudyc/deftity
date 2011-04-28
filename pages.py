@@ -153,8 +153,8 @@ class DescriptionPage(Page):
             'Title:', 0, SIZE_HEADER, wlim, SIZE_HEADER, 
             'title', self.get_data))
         self.actions.append(actions.TextareaAct( \
-            'Text:', w/20, 2*SIZE_HEADER, 
-            w*18/20, h-2*SIZE_HEADER, SIZE_TEXT, 'text', self.get_data))
+            'Text:', w/20, 3*SIZE_HEADER, 
+            w*18/20, h-3*SIZE_HEADER, SIZE_TEXT, 'text', self.get_data))
 
     def draw(self, c, tc, mx, my):
         Page.draw_frame(self, c, tc, 'Description page', mx, my)

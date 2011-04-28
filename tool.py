@@ -93,7 +93,11 @@ class Arrow(Component):
     def draw(self, c, tc, mx, my):
         a,b = self.links
         ax,ay,aw,ah = a.xywh()
+        ax += aw/2
+        ay += ah/2
         bx,by,bw,bh = b.xywh()
+        bx += bw/2
+        by += bh/2
         lenght = 35
         degrees = 0.5
 
@@ -102,10 +106,17 @@ class Arrow(Component):
         else:
             c.set_source_rgb(0, 0, 0)
         #c.move_to(ax, ay)
+        l1 = math.sqrt(aw**2 + ah**2)/2
+        l2 = math.sqrt(bw**2 + bh**2)/2
+        big = 1.2
+        angle = math.atan2(by - ay, bx - ax) + math.pi
+        ax = ax + big*aw/2 * math.cos(angle-math.pi)
+        ay = ay + big*ah/2 * math.sin(angle-math.pi)
+        bx = bx + big*bw/2 * math.cos(angle)
+        by = by + big*bh/2 * math.sin(angle)
+
         xx,yy = ax-bx, ay-by
         l = math.sqrt(xx**2 + yy**2)/2
-        angle = math.atan2(by - ay, bx - ax) + math.pi;
-
         c.new_path()
         xx = bx + l * math.cos(angle + degrees);
         yy = by + l * math.sin(angle + degrees);
@@ -209,12 +220,18 @@ class ToolContext(object):
         for c in self.tool.comps:
             x,y,w,h = c.xywh()
             if X < x and Y < y and x+w < XW and y+h < YH:
-                self.selected_comps.append(c)
+                if hasattr(c, 'is_within'):
+                    if c.is_within(X,Y,XW,YH):
+                        self.selected_comps.append(c)
+                else:
+                    self.selected_comps.append(c)
         print self.selected_comps
 
     def start_arrow(self):
         self.arrow = ToolContext.ARROW_START
     def set_arrow(self, comp):
+        if len(self.selected_comps) > 0 and comp not in self.selected_comps:
+            return
         if self.arrow == ToolContext.ARROW_START:
             self.arrow = ToolContext.ARROW_END
             self.arrow_comps.append(comp)
@@ -224,6 +241,11 @@ class ToolContext(object):
             self.tool.add_component(Arrow(self.arrow_comps))
             self.arrow_comps = []
     def selection_pressed(self, xy):
+        if len(self.selected_comps) == 1 \
+                and self.arrow in [ToolContext.ARROW_START, 
+                                   ToolContext.ARROW_END]:
+            self.set_arrow(self.selected_comps[0])
+
         x,y,xx,yy = self._selection_xyxxyy()
         gap = 150*0.3/self.tool.zoom
         self.selection_mode = [None, None]
@@ -301,9 +323,11 @@ class ToolContext(object):
             for linked in filter(lambda x: isinstance(x, Arrow) and \
                                  (x.links[0] == c or x.links[1] == c),
                                  self.tool.comps):
-                self.tool.comps.remove(linked)
+                if not isinstance(linked, Start):
+                    self.tool.comps.remove(linked)
                 print 'del', linked
-            self.tool.comps.remove(c)
+            if not isinstance(c, Start) and c in self.tool.comps:
+                self.tool.comps.remove(c)
             print 'del', c
         self.selected_comps = []
                 
@@ -407,6 +431,7 @@ class TheTool(object):
             'screen': 'WVGAScreen'.split(),
             'draw': 'Image Line Rectangle Circle'.split(),
             'sm': 'SMStart SMEnd SMState'.split(), 
+            'text': 'BodyText TitleText'.split(),
             }
         self.load_data()
         if len(self.comps) == 0:
@@ -619,9 +644,9 @@ class TheTool(object):
 
     def key_released(self, widget, ev):
         #for i in dir(ev): print i, eval('ev.'+i)
-        print ev.keyval
+        print widget, ev.keyval
         keyname = gtk.gdk.keyval_name(ev.keyval)
-        print "Key %s (%d) was released" % (keyname, ev.keyval)
+        print "Key %s (%d) was released" % (keyname, ev.keyval), self
         if ev.keyval & gtk.gdk.MOD1_MASK or \
                gtk.gdk.keyval_name(ev.keyval).startswith('Control'):
             self.toolbox = False
@@ -655,6 +680,11 @@ class TheTool(object):
 
         if keyname == 'q':
             self.is_quit = True
+            self.redraw()
+        if keyname == 'Escape':
+            print 'esc'
+            self.tool_context.arrow = ToolContext.ARROW_NONE
+            self.tool_context.arrow_comps = []
             self.redraw()
 
         if self.tool_context.selected_comps != [] and keyname == 'Delete':

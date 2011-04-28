@@ -101,12 +101,24 @@ class WVGAScreen(Action):
         self.tool.add_component(screens.WVGAScreen())
 
 class Text(Action):
-    def __init__(self):
-        self.label = 'Text'
+    def activate(self):
+        self.tool.action_node = 'text'
+        self.tool.redraw()
+
+class BodyText(Action):
     def activate(self):
         import text
         Action.activate(self)
-        self.tool.add_component(text.TextComp())
+        t = text.TextComp()
+        t.get_data()['size'] = 12
+        self.tool.add_component(t)
+class TitleText(Action):
+    def activate(self):
+        import text
+        Action.activate(self)
+        t = text.TextComp()
+        t.get_data()['size'] = 32
+        self.tool.add_component(t)
 
 class Draw(Action):
     def activate(self):
@@ -275,14 +287,18 @@ class EmptyPage(Action):
 class KeyHandler(object):
     def key(self, k, cur, _kmap=None):
         insert = ''
-        kmap = {'space':' ', 'period':',', 'comma':'.', 'question':'?',
-                'minus':'-', 'asterisk':'*', }
+        kmap = {'space':' ', 'period':'.', 'comma':',', 'question':'?',
+                'minus':'-', 'asterisk':'*', 'colon': ':', 'quotedbl':'"',
+                'slash':'/', 'apostrophe':"'",
+                'parenleft':'(','parenright':')',
+                }
         if k in kmap:
             insert = kmap[k]
         elif _kmap != None and k in _kmap:
             insert = _kmap[k]
         elif len(k) == 1:
             insert = k
+
         s = self.modelF()[self.name]
         if insert != '':
             s = s[:cur.pos] + insert + s[cur.pos:]
@@ -328,13 +344,15 @@ class TextfieldAct(Action, KeyHandler):
         tc.cursor.set_obj(self)
             
 class TextareaAct(Action, KeyHandler):
-    def __init__(self, label, x,y,w,h, size, name, model):
+    def __init__(self, label, x,y,w,h, size, name, model, 
+                 align=pango.ALIGN_LEFT):
         self.label = label
         self.x, self.y, self.w, self.h = x,y,w,h
         self.size = size
         self.name = name
         self.modelF = model
         self.layout = None
+        self.align = align
     def draw(self, c, x, y, active):
         w, size = self.w, self.h
         content = self.modelF()[self.name]
@@ -359,6 +377,7 @@ class TextareaAct(Action, KeyHandler):
 
         layout.set_width(int(w*pango.SCALE))
         layout.set_wrap(pango.WRAP_WORD_CHAR)
+        layout.set_alignment(self.align)
         layout.set_text(content)
         c.set_source_rgb(0, 0, 0)
         pctx.update_layout(layout)

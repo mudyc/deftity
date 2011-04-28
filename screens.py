@@ -37,6 +37,11 @@ class Screen(tool.Component):
         self.xy = [ 0,0 ]
         self.actions = []
         self.data = { 'caption': 'Screen' }
+        self.act = actions.TextareaAct( \
+            '', 0, 20, 80, 50,12, 'caption', self.get_data, pango.ALIGN_CENTER)
+    def size(self, w, h):
+        self.wh = [w, h]
+
     def xywh(self):
         return ( self.xy[0], self.xy[1], self.wh[0], self.wh[1])
     def pos(self, x,y):
@@ -51,6 +56,10 @@ class Screen(tool.Component):
         elif bigger and not int_bigger or not bigger and int_bigger:
             self.wh = [w, w/ratio]
 
+        x,y,w,h = self.xywh()
+        self.act = actions.TextareaAct( \
+            '', 0, h, w, 20,12, 'caption', self.get_data, pango.ALIGN_CENTER)
+
     def is_close(self,x0,y0):
         x,y,w,h = self.xywh()
         return x < x0 < x+w and \
@@ -63,7 +72,9 @@ class Screen(tool.Component):
         c.close_path()
         c.set_source_rgb(0,0,0)
         c.stroke()
-        util.write_center(c, self.get_data()['caption'], x,w, y+h+20, 16)
+        #util.write_center(c, self.get_data()['caption'], x,w, y+h+20, 16)
+        
+        self.act.draw(c, x+self.act.x, y+self.act.y, x<mx<x+w and my-20-y < h and my < y+h)
 
         if self.is_close(mx,my):
             c.new_path()
@@ -72,20 +83,23 @@ class Screen(tool.Component):
             c.set_source(cairo.SolidPattern(.8,.9,1, .2))
             c.fill_preserve()
 
-    def mouse_released(self, mx, my, cur):
+    def mouse_released(self, tc, mx, my):
         x,y,w,h = self.xywh()
         x = mx - x
-        y = my - y
-        for act in self.actions:
-            if act.is_hit(x, y):
-                act.mouse_released(x,y, cur)
+        y = my - 20 - y
+        self.act.mouse_released(tc, x, y)
+    def key(self, k, cur):
+        actions.KeyHandler.key(self.act, k, cur)
 
     def save_data(self):
         ret = tool.Component.save_data(self)
         ret['data'] = self.data
         return ret
     def get_data(self): return self.data
-       
+    def is_within(self, X,Y,XW,YH):
+        x,y,w,h = self.xywh()
+        print x+w, y+h+20, XW, YH, (y+h+20<YH)
+        return X < x and Y < y and x+w < XW and y+h+20 < YH
 
 
 
@@ -93,5 +107,6 @@ class WVGAScreen(Screen):
     def __init__(self):
         Screen.__init__(self)
         self.wh = self.WH = (800, 480)
+        self.size(800,480)
     def draw(self, c, tc, mx, my):
         Screen.draw_frame(self, c, mx, my)

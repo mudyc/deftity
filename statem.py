@@ -21,6 +21,8 @@
 
 import traceback
 import cairo
+import pango
+
 import tool
 import actions
 import math
@@ -62,7 +64,26 @@ class End(SM):
 class State(SM):
     def __init__(self):
         self.wh = [80,70]
-        self.data = { 'text': '' }
+        self.data = { 'text': 'Text' }
+        self.act = actions.TextareaAct( \
+            '', 0, 20, 80, 50,12, 'text', self.get_data, pango.ALIGN_CENTER)
+    def size(self, w, h):
+        self.wh = [w, h]
+        self.act = actions.TextareaAct( \
+            '', 0, 20, w, h-20,12, 'text', self.get_data, pango.ALIGN_CENTER)
+    def get_data(self): return self.data
+    def save_data(self):
+        ret = tool.Component.save_data(self)
+        ret['data'] = self.data
+        return ret
+    def mouse_released(self, tc, mx, my):
+        x,y,w,h = self.xywh()
+        x = mx - x
+        y = my - y
+        self.act.mouse_released(tc, x, y)
+    def key(self, k, cur):
+        actions.KeyHandler.key(self.act, k, cur, {'Return': '\n'})
+
     def draw(self, c, tc, mx, my):
         x,y,w,h = self.xywh()
         r = 30
@@ -86,3 +107,4 @@ class State(SM):
             c.set_source_rgb(0,0,0)
         c.stroke()#fill_preserve()
 
+        self.act.draw(c, x+self.act.x, y+self.act.y, self.is_close(mx, my))
